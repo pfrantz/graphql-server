@@ -46,6 +46,11 @@ class GraphQLView(View):
     should_persist_headers = None
     enable_async = False
 
+    # expects a function that loads a bunch of dataloaders and returns a dictionary of dataloaders by name
+    # the function isn't executed until the run http server is called as this is the only time we are in the
+    # asyncio event loop.
+    dataloaders_map_fn = None
+
     methods = ["GET", "POST", "PUT", "DELETE"]
 
     format_error = staticmethod(format_error_default)
@@ -66,6 +71,8 @@ class GraphQLView(View):
         context = copy.copy(self.context) if self.context and isinstance(self.context, MutableMapping) else {}
         if isinstance(context, MutableMapping) and "request" not in context:
             context.update({"request": request})
+        if self.dataloaders_map_fn is not None and isinstance(context, MutableMapping) and "dataloaders" not in context:
+            context.update({"dataloaders": self.dataloaders_map_fn()})
         return context
 
     def get_middleware(self):
